@@ -14,6 +14,7 @@ interface DuoHeaderProps {
   unlimitedHearts?: boolean;
   onPressProfile: () => void;
   onPressTutor: () => void;
+  onPressHearts?: () => void;
 }
 
 export function DuoHeader({
@@ -21,6 +22,7 @@ export function DuoHeader({
   unlimitedHearts = false,
   onPressProfile,
   onPressTutor,
+  onPressHearts,
 }: DuoHeaderProps) {
   const handleProfilePress = () => {
     sound.playPop();
@@ -73,12 +75,18 @@ export function DuoHeader({
         </View>
 
         {/* Hearts Life Pill */}
-        <View style={[styles.statPill, styles.heartPill]}>
+        <TouchableOpacity
+          style={[styles.statPill, styles.heartPill]}
+          activeOpacity={0.7}
+          onPress={() => {
+            sound.playPop();
+            if (onPressHearts) onPressHearts();
+          }}>
           <Text style={styles.statIcon}>❤️</Text>
           <Text style={[styles.statValue, { color: '#DC2626' }]}>
             {unlimitedHearts ? '∞' : student.hearts}
           </Text>
-        </View>
+        </TouchableOpacity>
 
         {/* Tutor / Teacher Portal Button */}
         <TouchableOpacity

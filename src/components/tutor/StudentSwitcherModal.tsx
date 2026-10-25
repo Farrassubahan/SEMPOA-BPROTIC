@@ -15,13 +15,16 @@ import {
   ScrollView,
   KeyboardAvoidingView,
   Platform,
-  Alert,
+  Image,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { StudentProfile } from '@/types/student';
 import { GradeLevel } from '@/types/curriculum';
 import { createNewStudent } from '@/services/storage';
 import { sound } from '@/services/sound';
+import { ConfirmationModal } from '@/components/common/ConfirmationModal';
+
+const APP_LOGO = require('../../../assets/expo.icon/Assets/logo-app.png');
 
 interface StudentSwitcherModalProps {
   visible: boolean;
@@ -82,6 +85,10 @@ export function StudentSwitcherModal({
   const [selectedAvatar, setSelectedAvatar] = useState('🦁');
   const [selectedGrade, setSelectedGrade] = useState<GradeLevel>('sd_rendah');
 
+  // Interactive Validator states (Agent 2)
+  const [studentToDelete, setStudentToDelete] = useState<StudentProfile | null>(null);
+  const [showMinWarning, setShowMinWarning] = useState(false);
+
   const handleSelectAvatar = (av: string) => {
     sound.playPop();
     setSelectedAvatar(av);
@@ -103,33 +110,20 @@ export function StudentSwitcherModal({
     onClose();
   };
 
-  const handleDelete = (id: string, name: string) => {
+  const handleRequestDelete = (student: StudentProfile) => {
     sound.playPop();
     if (students.length <= 1) {
-      if (Platform.OS === 'web') {
-        window.alert('Minimal harus ada 1 murid di dalam kelas!');
-      } else {
-        Alert.alert('Perhatian', 'Minimal harus ada 1 murid di dalam kelas!');
-      }
+      setShowMinWarning(true);
       return;
     }
+    setStudentToDelete(student);
+  };
 
-    const doDelete = () => {
-      if (onDeleteStudent) {
-        onDeleteStudent(id);
-      }
-    };
-
-    if (Platform.OS === 'web') {
-      if (window.confirm(`Hapus akun murid "${name}"?`)) {
-        doDelete();
-      }
-    } else {
-      Alert.alert('Hapus Murid', `Apakah Anda yakin ingin menghapus profil "${name}"?`, [
-        { text: 'Batal', style: 'cancel' },
-        { text: 'Hapus', style: 'destructive', onPress: doDelete },
-      ]);
+  const handleConfirmDelete = () => {
+    if (studentToDelete && onDeleteStudent) {
+      onDeleteStudent(studentToDelete.id);
     }
+    setStudentToDelete(null);
   };
 
   return (
@@ -347,11 +341,15 @@ export function StudentSwitcherModal({
               style={styles.listScroll}
               contentContainerStyle={styles.listScrollContent}
               showsVerticalScrollIndicator={false}>
-              {/* Classroom Greeting Banner */}
+              {/* Classroom Greeting Banner with Official App Logo */}
               <View style={styles.welcomeCard}>
-                <Text style={styles.welcomeEmoji}>🧮</Text>
+                <Image
+                  source={APP_LOGO}
+                  style={styles.welcomeAppLogo}
+                  resizeMode="contain"
+                />
                 <View style={styles.welcomeTextCol}>
-                  <Text style={styles.welcomeTitle}>Kelas Les BPROTIC</Text>
+                  <Text style={styles.welcomeTitle}>BPROTIC SEMPOA</Text>
                   <Text style={styles.welcomeSub}>
                     Total {students.length} murid terdaftar di perangkat ini
                   </Text>
@@ -419,16 +417,14 @@ export function StudentSwitcherModal({
                         </View>
                       </TouchableOpacity>
 
-                      {/* Delete button (only if > 1 student) */}
-                      {students.length > 1 && (
-                        <TouchableOpacity
-                          activeOpacity={0.7}
-                          onPress={() => handleDelete(item.id, item.name)}
-                          style={styles.deleteBtn}
-                          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-                          <Text style={styles.deleteBtnText}>🗑️</Text>
-                        </TouchableOpacity>
-                      )}
+                      {/* Delete button (with interactive popup confirmation) */}
+                      <TouchableOpacity
+                        activeOpacity={0.7}
+                        onPress={() => handleRequestDelete(item)}
+                        style={styles.deleteBtn}
+                        hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+                        <Text style={styles.deleteBtnText}>🗑️</Text>
+                      </TouchableOpacity>
                     </View>
                   );
                 })}
@@ -447,6 +443,41 @@ export function StudentSwitcherModal({
               </TouchableOpacity>
             </ScrollView>
           )}
+
+          {/* Interactive Confirmation Validator Popup (Agent 2) */}
+          <ConfirmationModal
+            visible={!!studentToDelete}
+            type="danger"
+            icon="🗑️"
+            title="Hapus Profil Murid?"
+            description="Apakah Anda yakin ingin menghapus profil murid ini? Semua riwayat progres belajar, bintang ⭐, dan permata 💎 akan terhapus secara permanen."
+            targetBadge={
+              studentToDelete
+                ? {
+                    emoji: studentToDelete.avatar,
+                    name: studentToDelete.name,
+                    subtitle: `🔥 ${studentToDelete.streakDays} hari • ⭐ ${studentToDelete.totalXp} XP • 💎 ${studentToDelete.gems}`,
+                  }
+                : undefined
+            }
+            confirmLabel="✓ Hapus Murid"
+            cancelLabel="Batal"
+            onConfirm={handleConfirmDelete}
+            onCancel={() => setStudentToDelete(null)}
+          />
+
+          {/* Warning Validator Popup (Minimal 1 Murid) */}
+          <ConfirmationModal
+            visible={showMinWarning}
+            type="warning"
+            icon="⚠️"
+            title="Tidak Dapat Dihapus"
+            description="Kelas les memerlukan minimal 1 profil murid aktif di dalam aplikasi agar petualangan belajar dapat berjalan."
+            confirmLabel="Mengerti"
+            cancelLabel="Tutup"
+            onConfirm={() => setShowMinWarning(false)}
+            onCancel={() => setShowMinWarning(false)}
+          />
         </View>
       </KeyboardAvoidingView>
     </Modal>
@@ -751,29 +782,35 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#EFF6FF',
-    borderRadius: 18,
+    borderRadius: 20,
     padding: 12,
     marginBottom: 14,
     borderWidth: 1.5,
     borderColor: '#BFDBFE',
-    gap: 10,
+    gap: 12,
   },
-  welcomeEmoji: {
-    fontSize: 26,
+  welcomeAppLogo: {
+    width: 48,
+    height: 48,
+    borderRadius: 14,
+    borderWidth: 1.5,
+    borderColor: '#BFDBFE',
+    backgroundColor: '#FFFFFF',
   },
   welcomeTextCol: {
     flex: 1,
   },
   welcomeTitle: {
-    fontSize: 14,
-    fontWeight: '800',
+    fontSize: 15,
+    fontWeight: '900',
     color: '#1E40AF',
+    letterSpacing: -0.2,
   },
   welcomeSub: {
     fontSize: 11,
     color: '#3B82F6',
     fontWeight: '600',
-    marginTop: 1,
+    marginTop: 2,
   },
   cardsContainer: {
     gap: 10,

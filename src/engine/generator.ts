@@ -138,3 +138,55 @@ export function generateFlashAnzanProblem(level: 'easy' | 'medium' | 'hard'): Pr
     explanation: `Urutan: ${numbers.join(' + ')} = ${total}`,
   };
 }
+
+export interface HeartChallengeItem {
+  id: string;
+  expression: string;
+  expected: number;
+  options: number[];
+}
+
+/**
+ * Generates rapid-fire mental arithmetic drills for recovering hearts
+ */
+export function generateHeartChallengeDrills(count = 3): HeartChallengeItem[] {
+  const drills: HeartChallengeItem[] = [];
+  for (let i = 0; i < count; i++) {
+    const isAddition = Math.random() > 0.35;
+    let a = 0;
+    let b = 0;
+    let expected = 0;
+    let expr = '';
+
+    if (isAddition) {
+      a = getRandomInt(2, 7);
+      b = getRandomInt(1, 9);
+      expected = a + b;
+      expr = `${a} + ${b}`;
+    } else {
+      a = getRandomInt(6, 15);
+      b = getRandomInt(1, Math.min(9, a - 1));
+      expected = a - b;
+      expr = `${a} - ${b}`;
+    }
+
+    const options = [expected];
+    while (options.length < 4) {
+      const delta = (Math.random() > 0.5 ? 1 : -1) * getRandomInt(1, 4);
+      const cand = expected + delta;
+      if (cand >= 0 && !options.includes(cand)) {
+        options.push(cand);
+      }
+    }
+    options.sort(() => Math.random() - 0.5);
+
+    drills.push({
+      id: `drill_${i}_${Date.now()}`,
+      expression: expr,
+      expected,
+      options,
+    });
+  }
+  return drills;
+}
+

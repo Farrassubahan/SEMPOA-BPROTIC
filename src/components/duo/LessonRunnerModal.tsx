@@ -19,6 +19,7 @@ import { StudentProfile } from '@/types/student';
 import { AbacusBoard } from '@/components/abacus/AbacusBoard';
 import { RodDigit, abacusRodsToNumber, numberToAbacusRods } from '@/engine/abacusEngine';
 import { sound } from '@/services/sound';
+import { HeartRefillModal } from '@/components/duo/HeartRefillModal';
 
 interface LessonRunnerModalProps {
   visible: boolean;
@@ -26,6 +27,7 @@ interface LessonRunnerModalProps {
   student: StudentProfile;
   unlimitedHearts?: boolean;
   onClose: () => void;
+  onSpendGems?: (amount: number) => void;
   onCompleteLesson: (result: {
     nodeId: string;
     stars: number;
@@ -42,6 +44,7 @@ export function LessonRunnerModal({
   student,
   unlimitedHearts = false,
   onClose,
+  onSpendGems,
   onCompleteLesson,
 }: LessonRunnerModalProps) {
   if (!visible || !node) return null;
@@ -54,6 +57,7 @@ export function LessonRunnerModal({
         student={student}
         unlimitedHearts={unlimitedHearts}
         onClose={onClose}
+        onSpendGems={onSpendGems}
         onCompleteLesson={onCompleteLesson}
       />
     </Modal>
@@ -65,12 +69,14 @@ function LessonRunnerContent({
   student,
   unlimitedHearts,
   onClose,
+  onSpendGems,
   onCompleteLesson,
 }: {
   node: LessonNode;
   student: StudentProfile;
   unlimitedHearts: boolean;
   onClose: () => void;
+  onSpendGems?: (amount: number) => void;
   onCompleteLesson: LessonRunnerModalProps['onCompleteLesson'];
 }) {
   const problems = node.problems;
@@ -87,6 +93,8 @@ function LessonRunnerContent({
   const [isCorrect, setIsCorrect] = useState(false);
   const [heartsLeft, setHeartsLeft] = useState(student.hearts);
   const [correctCount, setCorrectCount] = useState(0);
+  const [solvedIndices, setSolvedIndices] = useState<number[]>([]);
+  const [showOutOfHearts, setShowOutOfHearts] = useState(false);
   const [showFinished, setShowFinished] = useState(false);
   const [sessionErrors, setSessionErrors] = useState<Record<string, number>>({});
 
@@ -173,7 +181,7 @@ function LessonRunnerContent({
     );
   }
 
-  // Check student's answer
+  // Check student's answer (Duolingo evaluation)
   const handleCheckAnswer = () => {
     if (!currentProblem) return;
 
@@ -190,11 +198,20 @@ function LessonRunnerContent({
 
     if (correct) {
       sound.playCorrect();
+      if (!solvedIndices.includes(currentIndex)) {
+        setSolvedIndices((prev) => [...prev, currentIndex]);
+      }
       setCorrectCount((prev) => prev + 1);
     } else {
       sound.playIncorrect();
       if (!unlimitedHearts) {
-        setHeartsLeft((prev) => Math.max(0, prev - 1));
+        setHeartsLeft((prev) => {
+          const nextVal = Math.max(0, prev - 1);
+          if (nextVal === 0) {
+            setShowOutOfHearts(true);
+          }
+          return nextVal;
+        });
       }
       if (node.formulaCode) {
         setSessionErrors((prev) => ({
@@ -205,8 +222,17 @@ function LessonRunnerContent({
     }
   };
 
-  // Next problem or finish lesson
+  // Student got it wrong: retry the SAME problem without advancing! (Agent 1 & Agent 3)
+  const handleRetryProblem = () => {
+    sound.playPop();
+    setIsAnswerChecked(false);
+    // Notice: currentIndex DOES NOT CHANGE!
+    // The student remains on this exact problem to fix their beads or options until correct!
+  };
+
+  // Next problem or finish lesson (ONLY called when student's answer is correct!)
   const handleNextProblem = () => {
+    sound.playPop();
     if (currentIndex + 1 < problems.length) {
       const nextIdx = currentIndex + 1;
       const nextProblem = problems[nextIdx];
@@ -220,7 +246,11 @@ function LessonRunnerContent({
     }
   };
 
-  const progressPercent = Math.round(((currentIndex + 1) / problems.length) * 100);
+  // Progress bar only fills as problems are solved correctly!
+  const progressPercent = Math.min(
+    100,
+    Math.round((solvedIndices.length / Math.max(1, problems.length)) * 100)
+  );
   const accuracy = Math.round((correctCount / Math.max(1, problems.length)) * 100);
   const starsEarned = accuracy >= 90 ? 3 : accuracy >= 60 ? 2 : 1;
 
@@ -448,18 +478,24 @@ function LessonRunnerContent({
         {isAnswerChecked ? (
           <View style={styles.feedbackRow}>
             <View style={styles.feedbackTextWrapper}>
-              <Text
-                style={[
-                  styles.feedbackTitle,
-                  { color: isCorrect ? '#58A700' : '#EA2B2B' },
-                ]}>
-                {isCorrect ? '🎉 Luar Biasa!' : '⚠️ Perhatikan Rumus!'}
-              </Text>
+              <View style={styles.feedbackTitleRow}>
+                <Text style={styles.feedbackEmoji}>{isCorrect ? '🎉' : '❌'}</Text>
+                <Text
+                  style={[
+                    styles.feedbackTitle,
+                    { color: isCorrect ? '#58A700' : '#EA2B2B' },
+                  ]}>
+                  {isCorrect ? 'Luar Biasa!' : 'Kurang Tepat, Coba Lagi!'}
+                </Text>
+              </View>
               <Text style={styles.feedbackDesc}>
                 {isCorrect
-                  ? 'Jawabanmu tepat sekali!'
-                  : currentProblem?.explanation ||
-                    `Jawaban yang benar: ${currentProblem?.expectedAnswer}`}
+                  ? 'Jawabanmu tepat sekali! Ketuk Lanjut untuk soal berikutnya.'
+                  : (currentProblem?.formulaHint
+                      ? `💡 Petunjuk Rumus: ${currentProblem.formulaHint}`
+                      : currentProblem?.explanation
+                      ? `💡 ${currentProblem.explanation}`
+                      : 'Periksa kembali susunan manik sempoamu dan coba lagi.')}
               </Text>
             </View>
 
@@ -469,9 +505,11 @@ function LessonRunnerContent({
                 isCorrect ? styles.actionBtnCorrect : styles.actionBtnIncorrect,
               ]}
               activeOpacity={0.8}
-              onPress={handleNextProblem}>
+              onPress={isCorrect ? handleNextProblem : handleRetryProblem}>
               <Text style={styles.actionBtnText}>
-                {currentIndex + 1 < problems.length ? 'LANJUT' : 'LIHAT HASIL'}
+                {isCorrect
+                  ? (currentIndex + 1 < problems.length ? 'LANJUT ➔' : 'LIHAT HASIL')
+                  : '🔄 COBA LAGI'}
               </Text>
             </TouchableOpacity>
           </View>
@@ -489,6 +527,26 @@ function LessonRunnerContent({
           </TouchableOpacity>
         )}
       </View>
+
+      {/* Interactive Heart Refill & Recovery Challenge Modal (Agent 1 & Agent 2) */}
+      <HeartRefillModal
+        visible={showOutOfHearts}
+        currentHearts={heartsLeft}
+        gems={student.gems}
+        gemCost={20}
+        onRefillSuccess={(newHearts, gemsSpent) => {
+          setHeartsLeft(newHearts);
+          setShowOutOfHearts(false);
+          setIsAnswerChecked(false);
+          if (gemsSpent > 0 && onSpendGems) {
+            onSpendGems(gemsSpent);
+          }
+        }}
+        onClose={() => {
+          setShowOutOfHearts(false);
+          onClose();
+        }}
+      />
     </View>
   );
 }
@@ -690,6 +748,14 @@ const styles = StyleSheet.create({
   },
   feedbackTextWrapper: {
     gap: 4,
+  },
+  feedbackTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  feedbackEmoji: {
+    fontSize: 20,
   },
   feedbackTitle: {
     fontSize: 18,

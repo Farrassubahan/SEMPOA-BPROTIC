@@ -7,6 +7,7 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { LessonNode } from '@/types/curriculum';
+import { sound } from '@/services/sound';
 
 interface PathNodeProps {
   node: LessonNode;
@@ -25,6 +26,10 @@ export function PathNode({
   unitColor,
   onPress,
 }: PathNodeProps) {
+  const handlePress = () => {
+    sound.playPop();
+    onPress();
+  };
   // Calculate horizontal offset
   let translateX = 0;
   if (offset === 'left') translateX = -45;
@@ -57,7 +62,7 @@ export function PathNode({
       <TouchableOpacity
         activeOpacity={0.8}
         disabled={isLocked}
-        onPress={onPress}
+        onPress={handlePress}
         style={[
           styles.nodeCircle,
           {

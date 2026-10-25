@@ -32,6 +32,7 @@ import { PathNode } from '@/components/duo/PathNode';
 import { LessonRunnerModal } from '@/components/duo/LessonRunnerModal';
 import { StudentSwitcherModal } from '@/components/tutor/StudentSwitcherModal';
 import { TutorPortalModal } from '@/components/tutor/TutorPortalModal';
+import { HeartRefillModal } from '@/components/duo/HeartRefillModal';
 
 export default function HomeScreen() {
   const { width } = useWindowDimensions();
@@ -50,6 +51,7 @@ export default function HomeScreen() {
   const [activeLessonNode, setActiveLessonNode] = useState<LessonNode | null>(null);
   const [showStudentModal, setShowStudentModal] = useState(false);
   const [showTutorModal, setShowTutorModal] = useState(false);
+  const [showHeartModal, setShowHeartModal] = useState(false);
 
   // Load offline data on start
   useEffect(() => {
@@ -101,6 +103,31 @@ export default function HomeScreen() {
   const handleUpdateTutorConfig = async (newConfig: TutorConfig) => {
     setTutorConfig(newConfig);
     await saveTutorConfig(newConfig);
+  };
+
+  // Handle spending gems (e.g. for instant heart refill)
+  const handleSpendGems = async (amount: number) => {
+    if (!activeStudent) return;
+    const updatedStudent: StudentProfile = {
+      ...activeStudent,
+      gems: Math.max(0, activeStudent.gems - amount),
+    };
+    const updatedList = students.map((s) => (s.id === updatedStudent.id ? updatedStudent : s));
+    setStudents(updatedList);
+    await saveStudents(updatedList);
+  };
+
+  // Handle refilling student hearts from mini-challenge or gem exchange
+  const handleRefillHearts = async (newHearts: number, gemsSpent: number) => {
+    if (!activeStudent) return;
+    const updatedStudent: StudentProfile = {
+      ...activeStudent,
+      hearts: newHearts,
+      gems: Math.max(0, activeStudent.gems - gemsSpent),
+    };
+    const updatedList = students.map((s) => (s.id === updatedStudent.id ? updatedStudent : s));
+    setStudents(updatedList);
+    await saveStudents(updatedList);
   };
 
   // Handle lesson completion
@@ -202,6 +229,7 @@ export default function HomeScreen() {
         unlimitedHearts={tutorConfig.unlimitedHearts}
         onPressProfile={() => setShowStudentModal(true)}
         onPressTutor={() => setShowTutorModal(true)}
+        onPressHearts={() => setShowHeartModal(true)}
       />
 
       {/* Grade Level Quick Filter Bar */}
@@ -304,6 +332,7 @@ export default function HomeScreen() {
         student={activeStudent}
         unlimitedHearts={tutorConfig.unlimitedHearts}
         onClose={() => setActiveLessonNode(null)}
+        onSpendGems={handleSpendGems}
         onCompleteLesson={handleCompleteLesson}
       />
 
@@ -325,6 +354,16 @@ export default function HomeScreen() {
         student={activeStudent}
         onUpdateConfig={handleUpdateTutorConfig}
         onClose={() => setShowTutorModal(false)}
+      />
+
+      {/* Home Screen Heart Refill Challenge Modal (Agent 1 & 2) */}
+      <HeartRefillModal
+        visible={showHeartModal}
+        currentHearts={activeStudent.hearts}
+        gems={activeStudent.gems}
+        gemCost={20}
+        onRefillSuccess={handleRefillHearts}
+        onClose={() => setShowHeartModal(false)}
       />
     </View>
   );
