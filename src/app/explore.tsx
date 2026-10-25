@@ -10,10 +10,10 @@ import {
   Text,
   StyleSheet,
   ScrollView,
-  SafeAreaView,
   TouchableOpacity,
   useWindowDimensions,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AbacusBoard } from '@/components/abacus/AbacusBoard';
 import { RodDigit, abacusRodsToNumber, numberToAbacusRods } from '@/engine/abacusEngine';
 import { generateFlashAnzanProblem, generateFriend5Problem, generateFriend10Problem } from '@/engine/generator';
@@ -25,6 +25,7 @@ type PracticeMode = 'abacus_free' | 'flash_anzan' | 'drill_generator';
 export default function ExploreScreen() {
   const { width } = useWindowDimensions();
   const isTablet = width >= 768;
+  const insets = useSafeAreaInsets();
 
   const [activeMode, setActiveMode] = useState<PracticeMode>('abacus_free');
   const [rodCount, setRodCount] = useState<number>(5);
@@ -91,7 +92,13 @@ export default function ExploreScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
+    <View
+      style={[
+        styles.container,
+        {
+          paddingTop: Math.max(insets.top, 10),
+        },
+      ]}>
       {/* Top Header */}
       <View style={styles.topHeader}>
         <Text style={styles.headerTitle}>Laboratorium Latihan Sempoa</Text>
@@ -331,7 +338,7 @@ export default function ExploreScreen() {
 
         <View style={{ height: 60 }} />
       </ScrollView>
-    </SafeAreaView>
+    </View>
   );
 }
 
@@ -370,6 +377,7 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     alignItems: 'center',
     borderRadius: 10,
+    cursor: 'pointer' as any,
   },
   modeTabActive: {
     backgroundColor: '#FFFFFF',
@@ -417,6 +425,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#F0F0F0',
     borderWidth: 1,
     borderColor: '#E0E0E0',
+    cursor: 'pointer' as any,
   },
   rodPillActive: {
     backgroundColor: '#1CB0F6',
@@ -464,6 +473,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#F0F0F0',
     borderWidth: 1,
     borderColor: '#DDD',
+    cursor: 'pointer' as any,
   },
   speedPillActive: {
     backgroundColor: '#FF4B4B',
@@ -519,6 +529,7 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     borderBottomWidth: 3,
     borderBottomColor: '#1899D6',
+    cursor: 'pointer' as any,
   },
   revealBtnText: {
     color: '#FFFFFF',
@@ -547,6 +558,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     borderBottomWidth: 4,
     borderBottomColor: '#46A302',
+    cursor: 'pointer' as any,
   },
   btnDisabled: {
     opacity: 0.5,
@@ -570,6 +582,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     borderBottomWidth: 3,
     borderBottomColor: '#1899D6',
+    cursor: 'pointer' as any,
   },
   drillTypeBtnText: {
     color: '#FFFFFF',
@@ -608,6 +621,7 @@ const styles = StyleSheet.create({
     width: '100%',
     alignItems: 'center',
     marginTop: 10,
+    cursor: 'pointer' as any,
   },
   checkDrillBtnText: {
     color: '#FFFFFF',

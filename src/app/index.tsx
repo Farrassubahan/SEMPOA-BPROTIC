@@ -10,11 +10,11 @@ import {
   Text,
   StyleSheet,
   ScrollView,
-  SafeAreaView,
   TouchableOpacity,
   ActivityIndicator,
   useWindowDimensions,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { CURRICULUM_UNITS } from '@/data/curriculum';
 import { LessonNode, GradeLevel } from '@/types/curriculum';
 import { StudentProfile, TutorConfig } from '@/types/student';
@@ -36,6 +36,7 @@ import { TutorPortalModal } from '@/components/tutor/TutorPortalModal';
 export default function HomeScreen() {
   const { width } = useWindowDimensions();
   const isTablet = width >= 768;
+  const insets = useSafeAreaInsets();
 
   const [students, setStudents] = useState<StudentProfile[]>([]);
   const [activeStudentId, setActiveId] = useState<string>('');
@@ -80,6 +81,20 @@ export default function HomeScreen() {
     const updated = [...students, newStudent];
     setStudents(updated);
     await saveStudents(updated);
+  };
+
+  // Handle deleting student profile
+  const handleDeleteStudent = async (id: string) => {
+    if (students.length <= 1) return;
+    const updated = students.filter((s) => s.id !== id);
+    setStudents(updated);
+    await saveStudents(updated);
+
+    if (activeStudentId === id && updated.length > 0) {
+      const nextId = updated[0].id;
+      setActiveId(nextId);
+      await setActiveStudentId(nextId);
+    }
   };
 
   // Handle updating tutor config
@@ -174,7 +189,13 @@ export default function HomeScreen() {
   });
 
   return (
-    <SafeAreaView style={styles.container}>
+    <View
+      style={[
+        styles.container,
+        {
+          paddingTop: Math.max(insets.top, 10),
+        },
+      ]}>
       {/* Top Duolingo Gamification Header */}
       <DuoHeader
         student={activeStudent}
@@ -293,6 +314,7 @@ export default function HomeScreen() {
         activeStudentId={activeStudent.id}
         onSelectStudent={handleSelectStudent}
         onAddStudent={handleAddStudent}
+        onDeleteStudent={handleDeleteStudent}
         onClose={() => setShowStudentModal(false)}
       />
 
@@ -304,7 +326,7 @@ export default function HomeScreen() {
         onUpdateConfig={handleUpdateTutorConfig}
         onClose={() => setShowTutorModal(false)}
       />
-    </SafeAreaView>
+    </View>
   );
 }
 
@@ -342,6 +364,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#F0F0F0',
     borderWidth: 1,
     borderColor: '#E2E2E2',
+    cursor: 'pointer' as any,
   },
   filterPillActive: {
     backgroundColor: '#58CC02',

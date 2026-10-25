@@ -54,6 +54,31 @@ class SoundService {
   }
 
   /**
+   * Play playful pop / tap sound for UI buttons
+   */
+  playPop() {
+    if (Platform.OS === 'web' && this.audioContext) {
+      try {
+        this.ensureAudioContext();
+        const osc = this.audioContext.createOscillator();
+        const gain = this.audioContext.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(587.33, this.audioContext.currentTime); // D5
+        osc.frequency.exponentialRampToValueAtTime(880, this.audioContext.currentTime + 0.06);
+
+        gain.gain.setValueAtTime(0.2, this.audioContext.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, this.audioContext.currentTime + 0.06);
+
+        osc.connect(gain);
+        gain.connect(this.audioContext.destination);
+
+        osc.start();
+        osc.stop(this.audioContext.currentTime + 0.06);
+      } catch {}
+    }
+  }
+
+  /**
    * Duolingo-style cheerful correct chime!
    */
   playCorrect() {

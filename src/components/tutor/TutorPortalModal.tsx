@@ -12,11 +12,12 @@ import {
   StyleSheet,
   TouchableOpacity,
   Switch,
-  SafeAreaView,
   ScrollView,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { TutorConfig, StudentProfile } from '@/types/student';
 import { verifyPin } from '@/services/security';
+import { sound } from '@/services/sound';
 
 interface TutorPortalModalProps {
   visible: boolean;
@@ -37,9 +38,11 @@ export function TutorPortalModal({
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [pinError, setPinError] = useState(false);
   const [activeTab, setActiveTab] = useState<'settings' | 'diagnosis'>('settings');
+  const insets = useSafeAreaInsets();
 
   // Handle 4-digit keypad entry
   const handleDigitPress = (digit: string) => {
+    sound.playPop();
     if (pinInput.length < 4) {
       const nextPin = pinInput + digit;
       setPinInput(nextPin);
@@ -47,8 +50,10 @@ export function TutorPortalModal({
 
       if (nextPin.length === 4) {
         if (verifyPin(nextPin, config.pinHash)) {
+          sound.playCorrect();
           setIsAuthenticated(true);
         } else {
+          sound.playIncorrect();
           setPinError(true);
           setTimeout(() => setPinInput(''), 600);
         }
@@ -57,11 +62,13 @@ export function TutorPortalModal({
   };
 
   const handleBackspace = () => {
+    sound.playPop();
     setPinInput((prev) => prev.slice(0, -1));
     setPinError(false);
   };
 
   const handleClose = () => {
+    sound.playPop();
     setPinInput('');
     setIsAuthenticated(false);
     setPinError(false);
@@ -70,7 +77,14 @@ export function TutorPortalModal({
 
   return (
     <Modal visible={visible} animationType="slide" transparent={false}>
-      <SafeAreaView style={styles.container}>
+      <View
+        style={[
+          styles.container,
+          {
+            paddingTop: Math.max(insets.top, 14),
+            paddingBottom: Math.max(insets.bottom, 14),
+          },
+        ]}>
         {/* Header */}
         <View style={styles.header}>
           <TouchableOpacity onPress={handleClose} style={styles.closeBtn}>
@@ -81,8 +95,10 @@ export function TutorPortalModal({
         </View>
 
         {!isAuthenticated ? (
-          /* PIN Entry Screen */
-          <View style={styles.pinContainer}>
+          /* PIN Entry Screen with responsive scroll */
+          <ScrollView
+            contentContainerStyle={styles.pinScrollContent}
+            showsVerticalScrollIndicator={false}>
             <Text style={styles.pinIcon}>🔒</Text>
             <Text style={styles.pinPrompt}>Masukkan PIN Pengajar</Text>
             <Text style={styles.pinSubprompt}>PIN Default: 1234</Text>
@@ -109,6 +125,7 @@ export function TutorPortalModal({
               {['1', '2', '3', '4', '5', '6', '7', '8', '9'].map((num) => (
                 <TouchableOpacity
                   key={num}
+                  activeOpacity={0.7}
                   style={styles.keypadBtn}
                   onPress={() => handleDigitPress(num)}>
                   <Text style={styles.keypadText}>{num}</Text>
@@ -117,14 +134,18 @@ export function TutorPortalModal({
               <View style={styles.keypadBtnPlaceholder} />
               <TouchableOpacity
                 style={styles.keypadBtn}
+                activeOpacity={0.7}
                 onPress={() => handleDigitPress('0')}>
                 <Text style={styles.keypadText}>0</Text>
               </TouchableOpacity>
-              <TouchableOpacity style={styles.keypadBtn} onPress={handleBackspace}>
+              <TouchableOpacity
+                style={styles.keypadBtn}
+                activeOpacity={0.7}
+                onPress={handleBackspace}>
                 <Text style={styles.keypadText}>⌫</Text>
               </TouchableOpacity>
             </View>
-          </View>
+          </ScrollView>
         ) : (
           /* Authenticated Tutor Dashboard */
           <ScrollView contentContainerStyle={styles.dashboardContent}>
@@ -257,7 +278,7 @@ export function TutorPortalModal({
             )}
           </ScrollView>
         )}
-      </SafeAreaView>
+      </View>
     </Modal>
   );
 }
@@ -278,7 +299,8 @@ const styles = StyleSheet.create({
     borderBottomColor: '#E5E5E5',
   },
   closeBtn: {
-    padding: 6,
+    padding: 8,
+    cursor: 'pointer' as any,
   },
   closeBtnText: {
     fontSize: 20,
@@ -290,11 +312,12 @@ const styles = StyleSheet.create({
     fontWeight: '900',
     color: '#3C3C3C',
   },
-  pinContainer: {
-    flex: 1,
+  pinScrollContent: {
+    flexGrow: 1,
     alignItems: 'center',
     justifyContent: 'center',
     padding: 24,
+    paddingBottom: 40,
   },
   pinIcon: {
     fontSize: 50,
@@ -357,6 +380,7 @@ const styles = StyleSheet.create({
     borderWidth: 1.5,
     borderColor: '#E5E5E5',
     borderBottomWidth: 3,
+    cursor: 'pointer' as any,
   },
   keypadBtnPlaceholder: {
     width: 68,
@@ -369,6 +393,9 @@ const styles = StyleSheet.create({
   },
   dashboardContent: {
     padding: 16,
+    maxWidth: 640,
+    width: '100%',
+    alignSelf: 'center',
   },
   tabSwitcher: {
     flexDirection: 'row',
@@ -382,6 +409,7 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     alignItems: 'center',
     borderRadius: 10,
+    cursor: 'pointer' as any,
   },
   tabBtnActive: {
     backgroundColor: '#FFFFFF',

@@ -11,9 +11,9 @@ import {
   Text,
   StyleSheet,
   TouchableOpacity,
-  SafeAreaView,
   ScrollView,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LessonNode, Problem } from '@/types/curriculum';
 import { StudentProfile } from '@/types/student';
 import { AbacusBoard } from '@/components/abacus/AbacusBoard';
@@ -75,6 +75,7 @@ function LessonRunnerContent({
 }) {
   const problems = node.problems;
   const isChest = node.type === 'chest';
+  const insets = useSafeAreaInsets();
 
   const [currentIndex, setCurrentIndex] = useState(0);
   const [selectedOption, setSelectedOption] = useState<number | null>(null);
@@ -130,7 +131,14 @@ function LessonRunnerContent({
   // Chest Node Instant Reward Claim
   if (isChest) {
     return (
-      <SafeAreaView style={styles.chestContainer}>
+      <View
+        style={[
+          styles.chestContainer,
+          {
+            paddingTop: Math.max(insets.top, 24) + 12,
+            paddingBottom: Math.max(insets.bottom, 16) + 20,
+          },
+        ]}>
         <Text style={styles.chestIcon}>🎁</Text>
         <Text style={styles.chestTitle}>{node.title}</Text>
         <Text style={styles.chestSubtitle}>{node.subtitle}</Text>
@@ -161,7 +169,7 @@ function LessonRunnerContent({
           }}>
           <Text style={styles.claimButtonText}>KLAIM HADIAH</Text>
         </TouchableOpacity>
-      </SafeAreaView>
+      </View>
     );
   }
 
@@ -219,7 +227,14 @@ function LessonRunnerContent({
   // Final Completion Screen
   if (showFinished) {
     return (
-      <SafeAreaView style={styles.finishContainer}>
+      <View
+        style={[
+          styles.finishContainer,
+          {
+            paddingTop: Math.max(insets.top, 24) + 12,
+            paddingBottom: Math.max(insets.bottom, 16) + 20,
+          },
+        ]}>
         <Text style={styles.finishTrophy}>🏆</Text>
         <Text style={styles.finishTitle}>Pelajaran Selesai!</Text>
         <Text style={styles.finishSubtitle}>Kerja bagus! Otak sempoamu makin tajam!</Text>
@@ -272,12 +287,18 @@ function LessonRunnerContent({
           }}>
           <Text style={styles.finishButtonText}>LANJUTKAN KE PETA</Text>
         </TouchableOpacity>
-      </SafeAreaView>
+      </View>
     );
   }
 
   return (
-    <SafeAreaView style={styles.modalSafe}>
+    <View
+      style={[
+        styles.modalSafe,
+        {
+          paddingTop: Math.max(insets.top, 20) + 10,
+        },
+      ]}>
       {/* Top Navigation Bar: Close, Progress Bar, Hearts */}
       <View style={styles.topNavBar}>
         <TouchableOpacity style={styles.closeBtn} onPress={onClose}>
@@ -295,7 +316,11 @@ function LessonRunnerContent({
       </View>
 
       {/* Question Content Area */}
-      <ScrollView contentContainerStyle={styles.scrollContent}>
+      <ScrollView
+        contentContainerStyle={[
+          styles.scrollContent,
+          { paddingBottom: 160 + Math.max(insets.bottom, 24) },
+        ]}>
         {currentProblem && (
           <View style={styles.problemCard}>
             {/* Formula Hint Badge */}
@@ -414,6 +439,9 @@ function LessonRunnerContent({
       <View
         style={[
           styles.bottomSheet,
+          {
+            paddingBottom: Math.max(insets.bottom, 16) + 16,
+          },
           isAnswerChecked &&
             (isCorrect ? styles.bottomSheetCorrect : styles.bottomSheetIncorrect),
         ]}>
@@ -461,7 +489,7 @@ function LessonRunnerContent({
           </TouchableOpacity>
         )}
       </View>
-    </SafeAreaView>
+    </View>
   );
 }
 
@@ -478,7 +506,8 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   closeBtn: {
-    padding: 6,
+    padding: 8,
+    cursor: 'pointer' as any,
   },
   closeBtnText: {
     fontSize: 22,
@@ -585,6 +614,7 @@ const styles = StyleSheet.create({
     borderBottomWidth: 4,
     backgroundColor: '#FFFFFF',
     alignItems: 'center',
+    cursor: 'pointer' as any,
   },
   optionBtnSelected: {
     borderColor: '#84D8FF',
@@ -643,6 +673,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
     borderTopWidth: 2,
     borderTopColor: '#E5E5E5',
+    alignItems: 'center',
   },
   bottomSheetCorrect: {
     backgroundColor: '#D7FFB8',
@@ -654,6 +685,8 @@ const styles = StyleSheet.create({
   },
   feedbackRow: {
     gap: 12,
+    width: '100%',
+    maxWidth: 500,
   },
   feedbackTextWrapper: {
     gap: 4,
@@ -669,11 +702,13 @@ const styles = StyleSheet.create({
   },
   actionButton: {
     width: '100%',
+    maxWidth: 500,
     paddingVertical: 14,
     borderRadius: 16,
     alignItems: 'center',
     justifyContent: 'center',
     borderBottomWidth: 4,
+    cursor: 'pointer' as any,
   },
   actionBtnCheck: {
     backgroundColor: '#58CC02',
@@ -752,6 +787,7 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     borderBottomWidth: 5,
     borderBottomColor: '#CC9900',
+    cursor: 'pointer' as any,
   },
   claimButtonText: {
     fontSize: 16,
@@ -834,6 +870,7 @@ const styles = StyleSheet.create({
     width: '100%',
     maxWidth: 340,
     alignItems: 'center',
+    cursor: 'pointer' as any,
   },
   finishButtonText: {
     color: '#FFFFFF',

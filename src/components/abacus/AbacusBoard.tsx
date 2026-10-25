@@ -245,6 +245,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     borderBottomWidth: 2,
     borderBottomColor: '#7B1D1D',
+    cursor: 'pointer' as any,
   },
   resetButtonText: {
     color: '#FFF',
@@ -330,6 +331,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.2,
     shadowRadius: 2,
     elevation: 2,
+    cursor: 'pointer' as any,
   },
   upperBead: {
     backgroundColor: '#E65100',
